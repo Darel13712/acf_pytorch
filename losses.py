@@ -1,5 +1,5 @@
 import torch
-
+# todo: unified preprocessing, delete repeat_interleave?
 
 def bpr_loss(pos, neg, b=0.0, collapse=True):
     """
@@ -35,7 +35,7 @@ def warp_loss(pos, neg, b=1, collapse=True):
     Batch version of WARP loss.
 
     Regular version samples one negative example until violation is met.
-    This number of samples become the estimation of rank and weight is produces as some function of this rank.
+    This number of samples become the estimation of rank and weight is produced as some function of this rank.
 
     This version uses a batch of negatives and estimates rank as a number of violated examples.
 
@@ -63,6 +63,7 @@ def warp_loss(pos, neg, b=1, collapse=True):
     loss = bpr_loss(pos, neg, b, collapse=False)
     m = (loss > 0.5).float()
     m *= torch.log(m.sum() + 1) + 1
+    print(m)
     res = m * loss
     if collapse:
         res = res.mean()

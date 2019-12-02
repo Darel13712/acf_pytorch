@@ -8,6 +8,10 @@ from download_movielens import download
 
 
 class MovieLens(Dataset):
+    """
+    Handles loading of movielens.
+    Also provides sampling of positive and negative items for user.
+    """
     def __init__(self, dataset, threshold=4, unknown=3):
         if not os.path.exists(dataset):
             download(dataset)
@@ -49,6 +53,9 @@ class MovieLens(Dataset):
 
 
     def _neg_score(self, x):
+        """
+        Get score for negative item <x>
+        """
         if x in self.negative.index:
             return self.negative.loc[x, 'rating']
         else:
@@ -99,8 +106,9 @@ class MovieLens(Dataset):
             positive item ids
         """
         seen = self.positive.loc[self.positive.userId == user]
+        seen = seen.sort_values('rating', ascending=False)
         if limit > 0:
-            seen = seen.sort_values('rating', ascending=False).head(limit)
+            seen = seen.head(limit)
         return seen.movieId
 
     def get_features(self, ids):

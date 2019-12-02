@@ -4,6 +4,18 @@ This is a repository for a pytorch cover of ACF recommender from paper [Attentiv
 
 This is **not** a direct model from paper but rather an interpretation of it. You can see a list of differences lower.
 
+## Dataset
+I use Movielens dataset. It will be automatically downloaded. Just pass a name
+
+- ml-20m
+- ml-latest-small
+- ml-latest
+
+```python
+from dataset_handler import MovieLens
+ml = MovieLens('ml-latest-small')
+```
+
 
 
 Todo: 
