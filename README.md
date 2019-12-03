@@ -11,17 +11,36 @@ I use Movielens dataset. It will be automatically downloaded. Just pass a name
 - ml-latest-small
 - ml-latest
 
+See [dataset site](https://grouplens.org/datasets/movielens/) for details on datasets and other archive names to grab.
 ```python
 from dataset_handler import MovieLens
 ml = MovieLens('ml-latest-small')
 ```
 
+## Training process
+Training is handled in a triple loss style with an explicit warp as a loss function.
+For each pair (user, positive rating) we sample a batch of negative (not seen) examples for that user.
+Then we make sure that score for a positive item is bigger than score for negative items according to ewarp loss.
+
+## Nets
+There are 2 nets: **FeatureNet** to account for component level attention and 
+**UserNet** to account for item level attention and provide final user embedding.
+
+#### FeatureNet
+Takes user embedding and features for history items for this user. 
+Returns a vector of components for this items, 
+considering this user's attention to item components.
+
+#### UserNet
+Takes user id and ids for history items for this user.
+Returns user embedding considering item level attention.
+
+Prediction for user embedding and item embeddings can be retrieved by method `score` of UserNet.
 
 
-Todo: 
+##### Todo: 
 
 - Send model to device for GPU support
-- Think of how to use batches with current learning process
 
 
 

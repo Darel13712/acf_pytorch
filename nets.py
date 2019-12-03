@@ -64,6 +64,7 @@ class UserNet(nn.Module):
         self.l2 = nn.Linear(emb_dim, 1)
 
         self._kaiming_(self.l1)
+        self._kaiming_(self.l2)
 
     @staticmethod
     def _create_dict(array):
@@ -109,8 +110,6 @@ class UserNet(nn.Module):
 
         return x
 
-    @staticmethod
-    def score(user, items):
-        usern = user.expand(items.shape[0], -1)
-        return (usern * items).sum(1)
+    def score(self, user, items):
+        return (user * items).sum(1) / self.emb_dim
 
