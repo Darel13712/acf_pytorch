@@ -25,8 +25,10 @@ def bpr_loss(pos, neg, b=0.0, collapse=True):
     """
 
     res = torch.sigmoid(neg - pos + b)
+
     if collapse:
         res = res.mean()
+
     return res
 
 
@@ -61,12 +63,15 @@ def warp_loss(pos, neg, b=1, collapse=True):
     """
 
     loss = bpr_loss(pos, neg, b, collapse=False)
+
     m = (loss > 0.5).float()
     m *= torch.log(m.sum() + 1) + 1
-    print(m)
+
     res = m * loss
+
     if collapse:
         res = res.mean()
+
     return res
 
 
@@ -107,10 +112,11 @@ def ewarp_loss(pos, pos_score, neg, neg_score, b=1, max_rating=5.0, collapse=Tru
     p = torch.tensor([pos_score])
     n = torch.tensor(neg_score, dtype=torch.float)
     m = torch.tensor([max_rating])
-    p = torch.repeat_interleave(p, len(n))
-    m = torch.repeat_interleave(m, len(n))
+
     res = ((p + m - n) / m * warp_loss(pos, neg, b, collapse=False))
+
     if collapse:
         res = res.mean()
+
     return res
 

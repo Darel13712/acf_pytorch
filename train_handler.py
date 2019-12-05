@@ -32,8 +32,8 @@ class Trainer():
         self.dataset = dataset
         self.loss = loss
         self.optimizer = optimizer
-        self.train_test_split(test_size)
         self.logger = Log(run_name)
+        self.train_test_split(test_size)
         self.best_loss = float("inf")
 
     def train_test_split(self, num=10):
