@@ -27,7 +27,7 @@ def negative_head(g, n):
 
 
 class Trainer():
-    def __init__(self, model, dataset, loss, optimizer, run_name, test_size=10):
+    def __init__(self, model, dataset, loss, optimizer, run_name, device=None, test_size=10):
         self.model = model
         self.dataset = dataset
         self.loss = loss
@@ -35,6 +35,9 @@ class Trainer():
         self.logger = Log(run_name)
         self.train_test_split(test_size)
         self.best_loss = float("inf")
+        if device is None:
+            device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+        self.device = device
 
     def train_test_split(self, num=10):
         """
@@ -57,7 +60,7 @@ class Trainer():
 
     @staticmethod
     def sort(items, score):
-        order = np.argsort(score.numpy())[::-1]
+        order = np.argsort(score.cpu().numpy())[::-1]
         top = np.take(items, order)
         return top
 
@@ -148,7 +151,7 @@ class Trainer():
         pos_pred = self.get_predictions(user, [pos])
         neg_pred = self.get_predictions(user, neg)
 
-        loss = self.loss(pos_pred, pos_score, neg_pred, neg_score)
+        loss = self.loss(pos_pred, pos_score, neg_pred, neg_score, device=self.device)
         loss.backward()
 
         return loss.item()
@@ -162,6 +165,6 @@ class Trainer():
         pos_pred = self.get_predictions(user, [pos])
         neg_pred = self.get_predictions(user, neg)
 
-        loss = self.loss(pos_pred, pos_score, neg_pred, neg_score)
+        loss = self.loss(pos_pred, pos_score, neg_pred, neg_score, self.device)
         return loss.item()
 

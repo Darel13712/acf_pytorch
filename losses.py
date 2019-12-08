@@ -1,5 +1,4 @@
 import torch
-# todo: unified preprocessing, delete repeat_interleave?
 
 def bpr_loss(pos, neg, b=0.0, collapse=True):
     """
@@ -75,7 +74,7 @@ def warp_loss(pos, neg, b=1, collapse=True):
     return res
 
 
-def ewarp_loss(pos, pos_score, neg, neg_score, b=1, max_rating=5.0, collapse=True):
+def ewarp_loss(pos, pos_score, neg, neg_score, device, b=1, max_rating=5.0, collapse=True):
     """
     Explicit version of WARP loss.
 
@@ -109,9 +108,9 @@ def ewarp_loss(pos, pos_score, neg, neg_score, b=1, max_rating=5.0, collapse=Tru
     -------
     torch.tensor
     """
-    p = torch.tensor([pos_score])
-    n = torch.tensor(neg_score, dtype=torch.float)
-    m = torch.tensor([max_rating])
+    p = torch.tensor([pos_score], device=device)
+    n = torch.tensor(neg_score, dtype=torch.float, device=device)
+    m = torch.tensor([max_rating], device=device)
 
     res = ((p + m - n) / m * warp_loss(pos, neg, b, collapse=False))
 

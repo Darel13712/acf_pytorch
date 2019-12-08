@@ -42,7 +42,7 @@ class UserNet(nn.Module):
     Get user embedding accounting to surpassed items
     """
 
-    def __init__(self, users, items, emb_dim=128, feature_dim=0):
+    def __init__(self, users, items, emb_dim=128, feature_dim=0, device=None):
         super(UserNet, self).__init__()
 
         self.emb_dim = emb_dim
@@ -66,6 +66,10 @@ class UserNet(nn.Module):
         self._kaiming_(self.l1)
         self._kaiming_(self.l2)
 
+        if device is None:
+            device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+        self.device = device
+
     @staticmethod
     def _create_dict(array):
         res = dict()
@@ -78,10 +82,10 @@ class UserNet(nn.Module):
         torch.nn.init.zeros_(layer.bias)
 
     def _get_user(self, user_id):
-        return torch.tensor(self.user_dict[user_id])
+        return torch.tensor(self.user_dict[user_id], device=self.device)
 
     def _get_items(self, items):
-        return torch.tensor([self.item_dict[item] for item in items])
+        return torch.tensor([self.item_dict[item] for item in items], device=self.device)
 
     def get_items(self, item_ids):
         return self.item_embedding(self._get_items(item_ids))
@@ -92,9 +96,9 @@ class UserNet(nn.Module):
         items = self.item_embedding(self._get_items(item_ids))
 
         if self.feats is not None:
-            components = self.feats(user, torch.tensor(features, dtype=torch.float32))
+            components = self.feats(user, torch.tensor(features, dtype=torch.float32, device=self.device))
         else:
-            components = torch.tensor([])
+            components = torch.tensor([], device=self.device)
 
         usern = user.expand(items.shape[0], -1)
 

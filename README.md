@@ -38,11 +38,6 @@ Returns user embedding considering item level attention.
 Prediction for user embedding and item embeddings can be retrieved by method `score` of UserNet.
 
 
-##### Todo: 
-
-- Send model to device for GPU support
-
-
 
 ### Differences
 
