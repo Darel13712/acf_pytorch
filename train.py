@@ -15,9 +15,9 @@ def get_params(model):
 
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
-dataset = 'ml-20m'
+dataset = 'ml-latest-small'
 ml = MovieLens(dataset)
 net = UserNet(ml.users, ml.movies.index, feature_dim=ml.feature_dim, device=device).to(device)
 optimizer = torch.optim.Adam(get_params(net))
-t = Trainer(net, ml, ewarp_loss, optimizer, 'big', device)
+t = Trainer(net, ml, ewarp_loss, optimizer, 'small', device)
 t.fit(300)

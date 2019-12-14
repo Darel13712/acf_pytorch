@@ -6,6 +6,7 @@ from torch.utils.data import Dataset
 
 from download_movielens import download
 
+# todo: move negative sampling to dataloader and improve batches
 
 class MovieLens(Dataset):
     """

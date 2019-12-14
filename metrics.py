@@ -2,8 +2,8 @@ import numpy as np
 
 def dcg_score(y, k=100):
     """
-    Input array must be sorted!
-    <y> contains gain values for recommendation list.
+    Input array must be sorted! \n
+    <y> contains gain values for recommendation list. \n
     i-th value is a gain from i-th item.
     """
     y = np.array(y)[:k]

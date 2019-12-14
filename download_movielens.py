@@ -40,7 +40,7 @@ def download(dataset='ml-latest-small'):
 
         if os.path.exists(archive):
             os.remove(archive)
-        print('Ok')
+        print('Done\n')
     except Exception as e:
         print(e)
 
