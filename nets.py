@@ -47,11 +47,8 @@ class UserNet(nn.Module):
 
         self.emb_dim = emb_dim
 
-        num_users = len(users)
-        num_items = len(items)
-
-        self.user_dict = self._create_dict(users)
-        self.item_dict = self._create_dict(items)
+        num_users = max(users) + 1
+        num_items = max(items) + 1
 
         self.feats = FeatureNet(emb_dim, feature_dim) if feature_dim > 0 else None
 
@@ -59,7 +56,6 @@ class UserNet(nn.Module):
         self.item_embedding = nn.Embedding(num_items, emb_dim)
 
         f = 1 if self.feats is not None else 0
-
         self.l1 = nn.Linear((2 + f) * emb_dim, emb_dim)
         self.l2 = nn.Linear(emb_dim, 1)
 
@@ -70,13 +66,6 @@ class UserNet(nn.Module):
             device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
         self.device = device
 
-    @staticmethod
-    def _create_dict(array):
-        res = dict()
-        for i, v in enumerate(array):
-            res[v] = i
-        return res
-
     def _kaiming_(self, layer):
         nn.init.kaiming_normal_(layer.weight, nonlinearity='relu')
         torch.nn.init.zeros_(layer.bias)
@@ -84,16 +73,10 @@ class UserNet(nn.Module):
     def _get_user(self, user_id):
         return torch.tensor(self.user_dict[user_id], device=self.device)
 
-    def _get_items(self, items):
-        return torch.tensor([self.item_dict[item] for item in items], device=self.device)
+    def forward(self, user_ids, item_ids, features=None):
 
-    def get_items(self, item_ids):
-        return self.item_embedding(self._get_items(item_ids))
-
-    def forward(self, user_id, item_ids, features=None):
-
-        user = self.user_embedding(self._get_user(user_id))
-        items = self.item_embedding(self._get_items(item_ids))
+        user = self.user_embedding(user_ids)
+        items = self.item_embedding(item_ids)
 
         if self.feats is not None:
             components = self.feats(user, torch.tensor(features, dtype=torch.float32, device=self.device))

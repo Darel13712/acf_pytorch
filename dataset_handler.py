@@ -1,12 +1,10 @@
 import os
 import numpy as np
 import pandas as pd
-from sklearn.preprocessing import MultiLabelBinarizer
+from sklearn.preprocessing import MultiLabelBinarizer, LabelEncoder
 from torch.utils.data import Dataset
 
 from download_movielens import download
-
-# todo: move negative sampling to dataloader and improve batches
 
 class MovieLens(Dataset):
     """
@@ -17,37 +15,44 @@ class MovieLens(Dataset):
         if not os.path.exists(dataset):
             download(dataset)
 
+        self.movie_labels = LabelEncoder()
+        self.user_labels = LabelEncoder()
         self.threshold = threshold
         self.unknown = unknown
-        self.movies  = pd.read_csv(os.path.join(dataset, 'movies.csv'), index_col='movieId')
-        self.genres = self._extract_genres()
+
+        movies  = pd.read_csv(os.path.join(dataset, 'movies.csv'), index_col='movieId')
         ratings = pd.read_csv(os.path.join(dataset, 'ratings.csv'))
+
+        movies.index = self.movie_labels.fit_transform(movies.index)
+        ratings['userId'] = self.user_labels.fit_transform(ratings['userId'])
+        ratings['movieId'] = self.movie_labels.transform(ratings['movieId'])
+
+        self.movies = movies
+        self.genres = self._extract_genres(movies)
         self.set_scope(ratings)
 
-
     def set_scope(self, ratings):
-        self.ratings = ratings
+        self.ratings = ratings.sort_values('rating', ascending=False)
         self.users = self.ratings.userId.unique()
         self.positive = self.ratings.loc[self.ratings['rating'] >= self.threshold]
         self.negative = self.ratings.loc[self.ratings['rating'] < self.threshold]
 
-
-
-    def _extract_genres(self):
-
-        genres = self.movies.genres.apply(lambda x: x.split('|'))
-
+    @staticmethod
+    def _extract_genres(movies):
+        genres = movies.genres.apply(lambda x: x.split('|'))
         mlb = MultiLabelBinarizer()
         data = mlb.fit_transform(genres)
-
-        return pd.DataFrame(data, columns=mlb.classes_, index=self.movies.index)
+        return pd.DataFrame(data, columns=mlb.classes_, index=movies.index)
 
     @property
     def feature_dim(self):
         return self.genres.shape[1]
 
     def __getitem__(self, index):
-        return self.positive.iloc[index]
+        row = self.positive.iloc[index]
+        user, pos, pos_score, _ = row
+        neg, neg_score = self.get_negative(user)
+        return int(user), int(pos), float(pos_score), int(neg), float(neg_score)
 
     def _get_neg_score(self, negative):
         return np.array([self._neg_score(n) for n in negative])
@@ -62,31 +67,32 @@ class MovieLens(Dataset):
         else:
             return self.unknown
 
-    def get_negative(self, user, batch=30):
+    def get_negative(self, user):
         """
-        Sample <batch> negative items for <user>
+        Sample negative item for <user>
 
         Parameters
         ----------
         user: int
             user id
 
-        batch: int
-            number of negative items to return
-
         Returns
         -------
         array, array
-            negative item ids and corresponding explicit ratings
+            negative item id and corresponding explicit rating
         """
 
-        seen = self.positive.loc[self.positive.userId == user, 'movieId']
-        unseen = self.movies.index[~self.movies.index.isin(seen)]
-
-        negative = np.random.choice(unseen, batch)
-        neg_score = self._get_neg_score(negative)
+        unseen = self.not_watched(user)
+        negative = np.random.choice(unseen, 1)[0]
+        neg_score = self._neg_score(negative)
 
         return negative, neg_score
+
+    def not_watched(self, user):
+        return self.movies.index[~self.movies.index.isin(self.watched(user))]
+
+    def watched(self, user):
+        return self.positive.loc[self.positive.userId == user, 'movieId']
 
     def get_positive(self, user, limit=-1):
         """
@@ -107,20 +113,15 @@ class MovieLens(Dataset):
             positive item ids
         """
         seen = self.positive.loc[self.positive.userId == user]
-        seen = seen.sort_values('rating', ascending=False)
         if limit > 0:
             seen = seen.head(limit)
-        return seen.movieId
+        return seen.movieId.values
 
     def get_features(self, ids):
-        return self.genres.loc[ids]
-
-    def get_movies(self, ids):
-        return self.movies.loc[ids]
+        return self.genres.loc[ids].values
 
     def shuffle(self):
         return np.random.permutation(len(self.positive))
-
 
     def __len__(self):
         return len(self.positive)

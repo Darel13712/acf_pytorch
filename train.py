@@ -1,4 +1,5 @@
 import torch
+from torch.utils.data import DataLoader
 
 from dataset_handler import MovieLens
 from losses import ewarp_loss
@@ -19,5 +20,5 @@ dataset = 'ml-latest-small'
 ml = MovieLens(dataset)
 net = UserNet(ml.users, ml.movies.index, feature_dim=ml.feature_dim, device=device).to(device)
 optimizer = torch.optim.Adam(get_params(net))
-t = Trainer(net, ml, ewarp_loss, optimizer, 'small', device)
+t = Trainer(net, ml, ewarp_loss, optimizer, 'small', device=device)
 t.fit(300)

@@ -86,13 +86,13 @@ def ewarp_loss(pos, pos_score, neg, neg_score, device, b=1, max_rating=5.0, coll
     pos: torch.tensor
         positive score
 
-    pos_score: float
+    pos_score: torch.tensor
         explicit positive score
 
     neg: torch.tensor
         negative scores. Can be a batch of negatives.
 
-    neg_score: [floats]
+    neg_score: torch.tensor
         explicit negative scores for each item from batch
 
     b: float
@@ -108,11 +108,9 @@ def ewarp_loss(pos, pos_score, neg, neg_score, device, b=1, max_rating=5.0, coll
     -------
     torch.tensor
     """
-    p = torch.tensor([pos_score], device=device)
-    n = torch.tensor(neg_score, dtype=torch.float, device=device)
     m = torch.tensor([max_rating], device=device)
 
-    res = ((p + m - n) / m * warp_loss(pos, neg, b, collapse=False))
+    res = ((pos_score + m - neg_score) / m * warp_loss(pos, neg, b, collapse=False))
 
     if collapse:
         res = res.mean()
