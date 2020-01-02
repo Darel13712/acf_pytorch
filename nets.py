@@ -46,7 +46,6 @@ class UserNet(nn.Module):
         super(UserNet, self).__init__()
 
         self.emb_dim = emb_dim
-
         num_users = max(users) + 1
         num_items = max(items) + 1
 

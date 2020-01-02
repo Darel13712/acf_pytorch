@@ -33,7 +33,6 @@ def download(dataset='ml-latest-small'):
 
     try:
         download_url(f'http://files.grouplens.org/datasets/movielens/{archive}', archive)
-        # urllib.request.urlretrieve(f'http://files.grouplens.org/datasets/movielens/{archive}', archive)
         print('Extracting files...')
         zip_ref = zipfile.ZipFile(archive, 'r')
         zip_ref.extractall()

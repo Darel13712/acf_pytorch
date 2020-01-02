@@ -27,6 +27,9 @@ class Log():
         self.writer = SummaryWriter(path)
 
     def log(self, text):
+        """
+        Write <text> both to log and stdout
+        """
         print(text)
         f = open(f"{self.path}/log.txt", "a+")
         f.write(text + '\n')

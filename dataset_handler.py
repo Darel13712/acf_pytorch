@@ -11,7 +11,7 @@ class MovieLens(Dataset):
     Handles loading of movielens.
     Also provides sampling of positive and negative items for user.
     """
-    def __init__(self, dataset, threshold=4, unknown=3):
+    def __init__(self, dataset: str, threshold=4, unknown=3):
         if not os.path.exists(dataset):
             download(dataset)
 
@@ -32,7 +32,7 @@ class MovieLens(Dataset):
         self.set_scope(ratings)
 
     def set_scope(self, ratings):
-        self.ratings = ratings.sort_values('rating', ascending=False)
+        self.ratings = ratings
         self.users = self.ratings.userId.unique()
         self.positive = self.ratings.loc[self.ratings['rating'] >= self.threshold]
         self.negative = self.ratings.loc[self.ratings['rating'] < self.threshold]
@@ -53,10 +53,6 @@ class MovieLens(Dataset):
         user, pos, pos_score, _ = row
         neg, neg_score = self.get_negative(user)
         return int(user), int(pos), float(pos_score), int(neg), float(neg_score)
-
-    def _get_neg_score(self, negative):
-        return np.array([self._neg_score(n) for n in negative])
-
 
     def _neg_score(self, x):
         """
@@ -82,16 +78,16 @@ class MovieLens(Dataset):
             negative item id and corresponding explicit rating
         """
 
-        unseen = self.not_watched(user)
+        unseen = self.not_liked_movies(user)
         negative = np.random.choice(unseen, 1)[0]
         neg_score = self._neg_score(negative)
 
         return negative, neg_score
 
-    def not_watched(self, user):
-        return self.movies.index[~self.movies.index.isin(self.watched(user))]
+    def not_liked_movies(self, user):
+        return self.movies.index[~self.movies.index.isin(self.liked_movies(user))]
 
-    def watched(self, user):
+    def liked_movies(self, user):
         return self.positive.loc[self.positive.userId == user, 'movieId']
 
     def get_positive(self, user, limit=-1):
