@@ -99,3 +99,11 @@ class UserNet(nn.Module):
     def score(self, user, items):
         return (user * items).sum(1) / self.emb_dim
 
+    @property
+    def params(self):
+        params_to_update = []
+        for name, param in self.named_parameters():
+            if param.requires_grad == True:
+                params_to_update.append(param)
+        return params_to_update
+
