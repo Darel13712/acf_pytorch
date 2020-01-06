@@ -94,7 +94,7 @@ class Trainer():
         for userId, df in self.test.positive.groupby('userId'):
             not_watched = tensor(self.train.not_liked_movies(userId), device=self.device)
             order = self.predict(userId, not_watched).argsort(descending=True)
-            top = torch.take(not_watched, order).numpy()
+            top = torch.take(not_watched, order).cpu().numpy()
             gain = df.set_index('movieId').loc[top, 'rating'].fillna(0)
             best = df.sort_values('rating')['rating']
             score.append(ndcg_score(best, gain, k=k))
@@ -158,6 +158,7 @@ class Trainer():
     def get_predictions(self,
                         user: tensor,
                         items: Sequence[int]):
+        items = items.to(self.device)
         item_embeddings = self.model.item_embedding(items)
         prediction = self.model.score(user, item_embeddings)
         return prediction
@@ -176,8 +177,8 @@ class Trainer():
         pos_pred = self.get_predictions(user, pos)
         neg_pred = self.get_predictions(user, neg)
 
-        pos_score = pos_score.float()
-        neg_score = neg_score.float()
+        pos_score = pos_score.float().to(self.device)
+        neg_score = neg_score.float().to(self.device)
         loss = self.loss(pos_pred, pos_score, neg_pred, neg_score, device=self.device)
         loss.backward()
         return loss.item()
@@ -189,8 +190,8 @@ class Trainer():
         pos_pred = self.get_predictions(user, pos)
         neg_pred = self.get_predictions(user, neg)
 
-        pos_score = pos_score.float()
-        neg_score = neg_score.float()
+        pos_score = pos_score.float().to(self.device)
+        neg_score = neg_score.float().to(self.device)
         loss = self.loss(pos_pred, pos_score, neg_pred, neg_score, device=self.device)
         return loss.item()
 
