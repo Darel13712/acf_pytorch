@@ -1,8 +1,10 @@
 import os
+
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import MultiLabelBinarizer, LabelEncoder
 from torch.utils.data import Dataset
+from numpy.random import randint
 
 from download_movielens import download
 
@@ -11,7 +13,7 @@ class MovieLens(Dataset):
     Handles loading of movielens.
     Also provides sampling of positive and negative items for user.
     """
-    def __init__(self, dataset: str, threshold=4, unknown=3):
+    def __init__(self, dataset: str, threshold=4, unknown=3.0):
         if not os.path.exists(dataset):
             download(dataset)
 
@@ -28,14 +30,20 @@ class MovieLens(Dataset):
         ratings['movieId'] = self.movie_labels.transform(ratings['movieId'])
 
         self.movies = movies
+        self.total_movies = len(movies)
         self.genres = self._extract_genres(movies)
         self.set_scope(ratings)
 
     def set_scope(self, ratings):
         self.ratings = ratings
         self.users = self.ratings.userId.unique()
-        self.positive = self.ratings.loc[self.ratings['rating'] >= self.threshold]
-        self.negative = self.ratings.loc[self.ratings['rating'] < self.threshold]
+        self.positive = self.ratings.loc[self.ratings['rating'] >= self.threshold].index
+        self.negative = self.ratings.loc[self.ratings['rating'] < self.threshold].index
+        self.gr_users_pos = ratings.loc[self.positive].groupby('userId')
+        self.gr_users = ratings.groupby('userId')
+
+    def pos_data(self, user):
+        return self.ratings.loc[self.gr_users_pos.groups[user]]
 
     @staticmethod
     def _extract_genres(movies):
@@ -49,17 +57,17 @@ class MovieLens(Dataset):
         return self.genres.shape[1]
 
     def __getitem__(self, index):
-        row = self.positive.iloc[index]
+        row = self.ratings.loc[self.positive[index]]
         user, pos, pos_score, _ = row
         neg, neg_score = self.get_negative(user)
-        return int(user), int(pos), float(pos_score), int(neg), float(neg_score)
+        return user, pos, pos_score, neg, neg_score
 
     def _neg_score(self, x):
         """
         Get score for negative item <x>
         """
-        if x in self.negative.index:
-            return self.negative.loc[x, 'rating']
+        if x in self.negative:
+            return self.ratings.loc[x, 'rating']
         else:
             return self.unknown
 
@@ -77,18 +85,18 @@ class MovieLens(Dataset):
         array, array
             negative item id and corresponding explicit rating
         """
+        candidate = randint(self.total_movies)
+        seen = self.pos_data(user)
+        while candidate in seen.movieId:
+            candidate = randint(self.total_movies)
+        # unseen = self.not_liked_movies(user)
+        # negative = np.random.choice(unseen, 1)[0]
+        neg_score = self._neg_score(candidate)
 
-        unseen = self.not_liked_movies(user)
-        negative = np.random.choice(unseen, 1)[0]
-        neg_score = self._neg_score(negative)
-
-        return negative, neg_score
+        return candidate, neg_score
 
     def not_liked_movies(self, user):
-        return self.movies.index[~self.movies.index.isin(self.liked_movies(user))]
-
-    def liked_movies(self, user):
-        return self.positive.loc[self.positive.userId == user, 'movieId']
+        return self.movies.index[~self.movies.index.isin(self.pos_data(user).movieId)]
 
     def get_positive(self, user, limit=-1):
         """
@@ -108,16 +116,13 @@ class MovieLens(Dataset):
         array
             positive item ids
         """
-        seen = self.positive.loc[self.positive.userId == user]
+        seen = self.pos_data(user)
         if limit > 0:
             seen = seen.head(limit)
         return seen.movieId.values
 
     def get_features(self, ids):
         return self.genres.loc[ids].values
-
-    def shuffle(self):
-        return np.random.permutation(len(self.positive))
 
     def __len__(self):
         return len(self.positive)

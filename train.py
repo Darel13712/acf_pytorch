@@ -9,7 +9,8 @@ from train_handler import Trainer, get_device
 dataset = 'ml-20m'
 device = get_device()
 ml = MovieLens(dataset)
+ml.set_scope(ml.ratings.head(3000))
 net = UserNet(ml.users, ml.movies.index, feature_dim=ml.feature_dim, device=device).to(device)
 optimizer = torch.optim.Adam(net.params)
-t = Trainer(net, ml, ewarp_loss, optimizer, '20m', device=device)
-t.fit(300)
+t = Trainer(net, ml, ewarp_loss, optimizer, '20m_100e', device=device, batch_size=420)
+t.fit(5)

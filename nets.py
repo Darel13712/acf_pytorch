@@ -69,16 +69,13 @@ class UserNet(nn.Module):
         nn.init.kaiming_normal_(layer.weight, nonlinearity='relu')
         torch.nn.init.zeros_(layer.bias)
 
-    def _get_user(self, user_id):
-        return torch.tensor(self.user_dict[user_id], device=self.device)
-
     def forward(self, user_ids, item_ids, features=None):
 
         user = self.user_embedding(user_ids)
         items = self.item_embedding(item_ids)
 
         if self.feats is not None:
-            components = self.feats(user, torch.tensor(features, dtype=torch.float32, device=self.device))
+            components = self.feats(user, features)
         else:
             components = torch.tensor([], device=self.device)
 

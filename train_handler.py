@@ -1,3 +1,7 @@
+#
+# import line_profiler
+# profile = line_profiler.LineProfiler()
+
 from copy import deepcopy
 from typing import Sequence
 
@@ -64,9 +68,10 @@ class Trainer():
         self.batch_size = batch_size
         self.logger = Log(run_name)
         self.device = get_device(device)
+        self.model = self.model.to(self.device)
         self.train, self.test = self.train_test_split(test_size)
-        self.test_loader = DataLoader(self.test, batch_size=batch_size, shuffle=True)
-        self.train_loader = DataLoader(self.train, batch_size=batch_size, shuffle=True)
+        self.test_loader = DataLoader(self.test, batch_size=batch_size, shuffle=True, num_workers=1)
+        self.train_loader = DataLoader(self.train, batch_size=batch_size, shuffle=True, num_workers=20)
 
     def train_test_split(self, num=10):
         """
@@ -85,13 +90,13 @@ class Trainer():
         test.set_scope(test_r)
 
         return train, test
-
+    # @profile
     def score(self, k=10):
         """
         Calculate mean NDCG for users in test
         """
         score = []
-        for userId, df in self.test.positive.groupby('userId'):
+        for userId, df in self.test.gr_users:
             not_watched = tensor(self.train.not_liked_movies(userId), device=self.device)
             order = self.predict(userId, not_watched).argsort(descending=True)
             top = torch.take(not_watched, order).cpu().numpy()
@@ -117,7 +122,7 @@ class Trainer():
                 self.model.train(phase == 'train')
                 loss = 0
                 if phase == 'train':
-                    for batch in self.train_loader:
+                    for batch in tqdm(self.train_loader):
                         self.optimizer.zero_grad()
                         cur_loss  = self.training_step(batch)
                         self.optimizer.step()
@@ -135,6 +140,7 @@ class Trainer():
                         if loss < self.best_loss:
                             self.best_loss = loss
                             self.logger.save(self.state, epoch)
+        # profile.print_stats()
 
     def user_embeddings(self, users: tensor):
         """Get embeddings for every user without extra calculations for same users"""
@@ -145,16 +151,17 @@ class Trainer():
         res = [embeddings[user] for user in users.numpy()]
         return torch.stack(res)
 
+    # @profile
     def get_user_embedding(self, user: int):
         """Run UserNet to get embedding for <user>"""
         items = self.dataset.get_positive(user)
         feats = self.dataset.get_features(items)
         items = tensor(items, device=self.device)
-        feats = tensor(feats, device=self.device)
+        feats = tensor(feats, device=self.device, dtype=torch.float32)
         user = tensor(user, device=self.device)
         user = self.model(user, items, feats)
         return user
-
+    # @profile
     def get_predictions(self,
                         user: tensor,
                         items: Sequence[int]):
@@ -169,10 +176,12 @@ class Trainer():
         user = self.get_user_embedding(user_id)
         pred = self.get_predictions(user, item_ids)
         return pred
-
+    # @profile
     def training_step(self, batch):
         user, pos, pos_score, neg, neg_score = batch
-
+        user = user.long()
+        pos = pos.long()
+        neg = neg.long()
         user = self.user_embeddings(user)
         pos_pred = self.get_predictions(user, pos)
         neg_pred = self.get_predictions(user, neg)
@@ -185,7 +194,9 @@ class Trainer():
 
     def validation_step(self, batch):
         user, pos, pos_score, neg, neg_score = batch
-
+        user = user.long()
+        pos = pos.long()
+        neg = neg.long()
         user = self.user_embeddings(user)
         pos_pred = self.get_predictions(user, pos)
         neg_pred = self.get_predictions(user, neg)
