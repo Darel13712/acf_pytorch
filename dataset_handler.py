@@ -96,7 +96,10 @@ class MovieLens(Dataset):
         return candidate, neg_score
 
     def not_liked_movies(self, user):
-        return self.movies.index[~self.movies.index.isin(self.pos_data(user).movieId)]
+        if user in self.gr_users_pos.groups.keys():
+            return self.movies.index[~self.movies.index.isin(self.pos_data(user).movieId)]
+        else:
+            return self.movies.index
 
     def get_positive(self, user, limit=-1):
         """

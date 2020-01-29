@@ -71,7 +71,7 @@ class Trainer():
         self.model = self.model.to(self.device)
         self.train, self.test = self.train_test_split(test_size)
         self.test_loader = DataLoader(self.test, batch_size=batch_size, shuffle=True, num_workers=1)
-        self.train_loader = DataLoader(self.train, batch_size=batch_size, shuffle=True, num_workers=20)
+        self.train_loader = DataLoader(self.train, batch_size=batch_size, shuffle=True, num_workers=10)
 
     def train_test_split(self, num=10):
         """
@@ -97,12 +97,13 @@ class Trainer():
         """
         score = []
         for userId, df in self.test.gr_users:
-            not_watched = tensor(self.train.not_liked_movies(userId), device=self.device)
-            order = self.predict(userId, not_watched).argsort(descending=True)
-            top = torch.take(not_watched, order).cpu().numpy()
-            gain = df.set_index('movieId').loc[top, 'rating'].fillna(0)
-            best = df.sort_values('rating')['rating']
-            score.append(ndcg_score(best, gain, k=k))
+            if userId in self.train.gr_users_pos.groups.keys():
+                not_watched = tensor(self.train.not_liked_movies(userId), device=self.device)
+                order = self.predict(userId, not_watched).argsort(descending=True)
+                top = torch.take(not_watched, order).cpu().numpy()
+                gain = df.set_index('movieId').loc[top, 'rating'].fillna(0)
+                best = df.sort_values('rating')['rating']
+                score.append(ndcg_score(best, gain, k=k))
         return np.mean(score)
 
     @property
