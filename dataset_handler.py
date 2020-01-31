@@ -40,10 +40,20 @@ class MovieLens(Dataset):
         self.positive = self.ratings.loc[self.ratings['rating'] >= self.threshold].index
         self.negative = self.ratings.loc[self.ratings['rating'] < self.threshold].index
         self.gr_users_pos = ratings.loc[self.positive].groupby('userId')
+        self.gr_users_neg = ratings.loc[self.negative].groupby('userId')
         self.gr_users = ratings.groupby('userId')
 
     def pos_data(self, user):
         return self.ratings.loc[self.gr_users_pos.groups[user]]
+
+    def data(self, user):
+        return self.ratings.loc[self.gr_users.groups[user]]
+
+    def neg_data(self, user):
+        if user in self.gr_users_neg.groups.keys():
+            return self.ratings.loc[self.gr_users_neg.groups[user]]
+        else:
+            return pd.DataFrame(columns=self.ratings.columns)
 
     @staticmethod
     def _extract_genres(movies):
@@ -62,12 +72,13 @@ class MovieLens(Dataset):
         neg, neg_score = self.get_negative(user)
         return user, pos, pos_score, neg, neg_score
 
-    def _neg_score(self, x):
+    def _neg_score(self, user, x):
         """
         Get score for negative item <x>
         """
-        if x in self.negative:
-            return self.ratings.loc[x, 'rating']
+        df = self.neg_data(user)
+        if x in df.movieId.values:
+            return df.loc[df.movieId == x, 'rating'].values[0]
         else:
             return self.unknown
 
@@ -91,7 +102,7 @@ class MovieLens(Dataset):
             candidate = randint(self.total_movies)
         # unseen = self.not_liked_movies(user)
         # negative = np.random.choice(unseen, 1)[0]
-        neg_score = self._neg_score(candidate)
+        neg_score = self._neg_score(user, candidate)
 
         return candidate, neg_score
 
