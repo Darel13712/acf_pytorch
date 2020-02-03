@@ -1,7 +1,3 @@
-#
-# import line_profiler
-# profile = line_profiler.LineProfiler()
-
 from copy import deepcopy
 from typing import Sequence
 
@@ -90,7 +86,7 @@ class Trainer():
         test.set_scope(test_r)
 
         return train, test
-    # @profile
+
     def score(self, k=10):
         """
         Calculate mean NDCG for users in test
@@ -141,7 +137,6 @@ class Trainer():
                         if loss < self.best_loss:
                             self.best_loss = loss
                             self.logger.save(self.state, epoch)
-        # profile.print_stats()
 
     def user_embeddings(self, users: tensor):
         """Get embeddings for every user without extra calculations for same users"""
@@ -152,7 +147,6 @@ class Trainer():
         res = [embeddings[user] for user in users.numpy()]
         return torch.stack(res)
 
-    # @profile
     def get_user_embedding(self, user: int):
         """Run UserNet to get embedding for <user>"""
         items = self.dataset.get_positive(user)
@@ -162,7 +156,7 @@ class Trainer():
         user = tensor(user, device=self.device)
         user = self.model(user, items, feats)
         return user
-    # @profile
+
     def get_predictions(self,
                         user: tensor,
                         items: Sequence[int]):
@@ -177,7 +171,7 @@ class Trainer():
         user = self.get_user_embedding(user_id)
         pred = self.get_predictions(user, item_ids)
         return pred
-    # @profile
+
     def training_step(self, batch):
         user, pos, pos_score, neg, neg_score = batch
         user = user.long()

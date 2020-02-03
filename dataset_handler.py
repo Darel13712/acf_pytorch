@@ -67,10 +67,15 @@ class MovieLens(Dataset):
         return self.genres.shape[1]
 
     def __getitem__(self, index):
-        row = self.ratings.loc[self.positive[index]]
-        user, pos, pos_score, _ = row
-        neg, neg_score = self.get_negative(user)
-        return user, pos, pos_score, neg, neg_score
+        row = self.ratings.loc[index]
+        user, item, score, _ = row
+        other, other_score = self.get_random(user)
+        if score > self.threshold:
+            return user, item, score, other, other_score
+        else:
+            return user, other, other_score, item, score
+
+
 
     def _neg_score(self, user, x):
         """
@@ -82,9 +87,9 @@ class MovieLens(Dataset):
         else:
             return self.unknown
 
-    def get_negative(self, user):
+    def get_random(self, user):
         """
-        Sample negative item for <user>
+        Sample random item for <user>
 
         Parameters
         ----------
@@ -94,7 +99,7 @@ class MovieLens(Dataset):
         Returns
         -------
         array, array
-            negative item id and corresponding explicit rating
+            random item id and corresponding explicit rating
         """
         candidate = randint(self.total_movies)
         seen = self.pos_data(user)
